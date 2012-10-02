@@ -257,6 +257,12 @@ class Filemanager {
     if(!$this->config['upload']['overwrite']) {
       $_FILES['newfile']['name'] = $this->checkFilename($this->doc_root . $this->post['currentpath'],$_FILES['newfile']['name']);
     }
+
+    //Resize before move to meet max dimensions:
+    if($size = @getimagesize($_FILES['newfile']['tmp_name']) AND !empty($this->config['images']['maxwidth']) AND !empty($this->config['images']['maxheight'])){
+   	 $this->resizeImage($_FILES['newfile']['tmp_name']);
+    }
+    
     move_uploaded_file($_FILES['newfile']['tmp_name'], $this->doc_root . $this->post['currentpath'] . $_FILES['newfile']['name']);
     chmod($this->doc_root . $this->post['currentpath'] . $_FILES['newfile']['name'], 0644);
 
@@ -415,14 +421,14 @@ class Filemanager {
     }
 
     $mapping = array(
-        'Š'=>'S', 'š'=>'s', 'Đ'=>'Dj', 'đ'=>'dj', 'Ž'=>'Z', 'ž'=>'z', 'Č'=>'C', 'č'=>'c', 'Ć'=>'C', 'ć'=>'c',
-        'À'=>'A', 'Á'=>'A', 'Â'=>'A', 'Ã'=>'A', 'Ä'=>'A', 'Å'=>'A', 'Æ'=>'A', 'Ç'=>'C', 'È'=>'E', 'É'=>'E',
-        'Ê'=>'E', 'Ë'=>'E', 'Ì'=>'I', 'Í'=>'I', 'Î'=>'I', 'Ï'=>'I', 'Ñ'=>'N', 'Ò'=>'O', 'Ó'=>'O', 'Ô'=>'O',
-        'Õ'=>'O', 'Ö'=>'O', 'Ő'=>'O', 'Ø'=>'O', 'Ù'=>'U', 'Ú'=>'U', 'Û'=>'U', 'Ü'=>'U', 'Ű'=>'U', 'Ý'=>'Y',
-        'Þ'=>'B', 'ß'=>'Ss','à'=>'a', 'á'=>'a', 'â'=>'a', 'ã'=>'a', 'ä'=>'a', 'å'=>'a', 'æ'=>'a', 'ç'=>'c',
-        'è'=>'e', 'é'=>'e', 'ê'=>'e', 'ë'=>'e', 'ì'=>'i', 'í'=>'i', 'î'=>'i', 'ï'=>'i', 'ð'=>'o', 'ñ'=>'n',
-        'ò'=>'o', 'ó'=>'o', 'ô'=>'o', 'õ'=>'o', 'ö'=>'o', 'ő'=>'o', 'ø'=>'o', 'ù'=>'u', 'ú'=>'u', 'ű'=>'u',
-        'û'=>'u', 'ý'=>'y', 'ý'=>'y', 'þ'=>'b', 'ÿ'=>'y', 'Ŕ'=>'R', 'ŕ'=>'r', ' '=>'_', "'"=>'_', '/'=>''
+        'Å '=>'S', 'Å¡'=>'s', 'Ä�'=>'Dj', 'Ä‘'=>'dj', 'Å½'=>'Z', 'Å¾'=>'z', 'ÄŒ'=>'C', 'Ä�'=>'c', 'Ä†'=>'C', 'Ä‡'=>'c',
+        'Ã€'=>'A', 'Ã�'=>'A', 'Ã‚'=>'A', 'Ãƒ'=>'A', 'Ã„'=>'A', 'Ã…'=>'A', 'Ã†'=>'A', 'Ã‡'=>'C', 'Ãˆ'=>'E', 'Ã‰'=>'E',
+        'ÃŠ'=>'E', 'Ã‹'=>'E', 'ÃŒ'=>'I', 'Ã�'=>'I', 'ÃŽ'=>'I', 'Ã�'=>'I', 'Ã‘'=>'N', 'Ã’'=>'O', 'Ã“'=>'O', 'Ã”'=>'O',
+        'Ã•'=>'O', 'Ã–'=>'O', 'Å�'=>'O', 'Ã˜'=>'O', 'Ã™'=>'U', 'Ãš'=>'U', 'Ã›'=>'U', 'Ãœ'=>'U', 'Å°'=>'U', 'Ã�'=>'Y',
+        'Ãž'=>'B', 'ÃŸ'=>'Ss','Ã '=>'a', 'Ã¡'=>'a', 'Ã¢'=>'a', 'Ã£'=>'a', 'Ã¤'=>'a', 'Ã¥'=>'a', 'Ã¦'=>'a', 'Ã§'=>'c',
+        'Ã¨'=>'e', 'Ã©'=>'e', 'Ãª'=>'e', 'Ã«'=>'e', 'Ã¬'=>'i', 'Ã­'=>'i', 'Ã®'=>'i', 'Ã¯'=>'i', 'Ã°'=>'o', 'Ã±'=>'n',
+        'Ã²'=>'o', 'Ã³'=>'o', 'Ã´'=>'o', 'Ãµ'=>'o', 'Ã¶'=>'o', 'Å‘'=>'o', 'Ã¸'=>'o', 'Ã¹'=>'u', 'Ãº'=>'u', 'Å±'=>'u',
+        'Ã»'=>'u', 'Ã½'=>'y', 'Ã½'=>'y', 'Ã¾'=>'b', 'Ã¿'=>'y', 'Å”'=>'R', 'Å•'=>'r', ' '=>'_', "'"=>'_', '/'=>''
         );
 
         if (is_array($string)) {
@@ -492,6 +498,100 @@ class Filemanager {
       }
       closedir($handle);
     }
+  }
+  
+  /**
+   * Function to resize image to certain dimensions
+   * @param string $sImage Full path to image on filesystem
+   * @return boolean Did the resize succeed?
+   */
+  private function resizeImage($sImage)
+  {
+  	$iMaxWidth = $this->config['images']['maxwidth'];
+  	$iMaxHeight = $this->config['images']['maxheight'];
+  	
+  	if($aSize = @getimagesize($sImage))
+  	{
+  		list($iOrigWidth, $iOrigHeight) = $aSize;
+  		$sMimeType = $aSize['mime'];
+  		$rResized = null;
+  		switch($sMimeType)
+  		{
+  			case 'image/jpeg':
+  			case 'image/pjpeg':
+  			case 'image/jpg':
+  				$rResized = imagecreatefromjpeg($sImage);
+  				break;
+  			case 'image/gif':
+  				$rResized = imagecreatefromgif($sImage);
+  				break;
+  			case 'image/png':
+  			case 'image/x-png':
+  				$rResized = imagecreatefrompng($sImage);
+  				break;
+  			default:
+  				return false;
+  		}
+  		if(isset($iOrigWidth, $iOrigHeight))
+  		{
+  			if($iOrigWidth <= $iMaxWidth && $iOrigHeight <= $iMaxHeight)
+  			{
+  				$iNewWidth = $iOrigWidth;
+  				$iNewHeight = $iOrigHeight;
+  			} else
+  			{
+  				$iOrigRatio = $iOrigWidth / $iOrigHeight;
+  				if(($iMaxWidth/$iMaxHeight) > $iOrigRatio)
+  				{
+  					if($iOrigWidth > $iOrigHeight)
+  					{
+  						$iNewWidth = $iMaxHeight * $iOrigRatio;
+  						$iNewHeight = $iMaxHeight;
+  					}else{
+  						//$iOrigRatio = $iOrigHeight / $iOrigWidth;
+  						$iNewWidth = $iMaxWidth * $iOrigRatio;
+  						$iNewHeight = $iMaxHeight;
+  					}
+  				} else
+  				{
+  					$iNewHeight = $iMaxWidth / $iOrigRatio;
+  					$iNewWidth = $iMaxWidth;
+  				}
+  			}
+  			$rResampledImage = imagecreatetruecolor($iNewWidth, $iNewHeight);
+  			imagecopyresampled($rResampledImage, $rResized, 0, 0, 0, 0, $iNewWidth, $iNewHeight, $iOrigWidth, $iOrigHeight);
+  			unlink($sImage);
+  			switch($sMimeType)
+  			{
+  				case 'image/jpeg':
+  				case 'image/pjpeg':
+  				case 'image/jpg':
+  					imagejpeg($rResampledImage, $sImage, 100);
+  					break;
+  				case 'image/gif':
+  					imagegif($rResampledImage, $sImage);
+  					break;
+  				case 'image/png':
+  				case 'image/x-png':
+  					imagepng($rResampledImage, $sImage);
+  					break;
+  				default:
+  					return false;
+  			}
+  			@chmod($sImage, 0777);
+  			return array(    "name" => $sImage,
+  					"mime" => $sMimeType,
+  					"width" => $iNewWidth,
+  					"height" => $iNewHeight
+  			);
+  		} else
+  		{
+  			return false;
+  		}
+  	} else
+  	{
+  		return false;
+  	}
   }
 }
 ?>

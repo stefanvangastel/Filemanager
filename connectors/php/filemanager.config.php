@@ -34,7 +34,7 @@ $config['culture'] = 'en';
  *	PHP date format
  *	see http://www.php.net/date for explanation
  */
-$config['date'] = 'd M Y H:i';
+$config['date'] = 'd m Y H:i';
 
 /**
  *	Icons settings
@@ -52,10 +52,11 @@ $config['upload']['imagesonly'] = false; // true or false; Only allow images (jp
 
 /**
  *	Images array
- *	used to display image thumbnails
+ *	used to display image thumbnails and define max dimensions
  */
 $config['images'] = array('jpg', 'jpeg','gif','png');
-
+$config['images']['maxwidth']=800; //Integer with max width pixels
+$config['images']['maxheight']=600; //Integer with max height pixels
 
 /**
  *	Files and folders
@@ -68,7 +69,7 @@ $config['unallowed_dirs']= array('_thumbs','.CDN_ACCESS_LOGS', 'cloudservers');
  *	FEATURED OPTIONS
  *	for Vhost or outside files folder
  */
-// $config['doc_root'] = '/home/user/userfiles'; // No end slash
+// $config['doc_root'] = 'C:\Users\Stefan\Dropbox\xampp\htdocs\fokkema\app\Plugin\\webroot\img'; // No end slash
 
 
 /**
